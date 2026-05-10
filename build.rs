@@ -40,7 +40,7 @@ fn find_cl_exe() -> Option<PathBuf> {
     None
 }
 
-fn compile_cuda_to_ptx(src: &str, kernels_dir: &PathBuf, out_dir: &PathBuf, cl_bin_dir: Option<&PathBuf>) {
+fn compile_cuda_to_ptx(src: &str, kernels_dir: &PathBuf, out_dir: &PathBuf, cl_bin_dir: Option<&PathBuf>, arch: &str) {
     let src_path = PathBuf::from(src);
     let stem = src_path.file_stem().unwrap().to_str().unwrap();
     let out_path = out_dir.join(format!("{}.ptx", stem));
@@ -52,12 +52,7 @@ fn compile_cuda_to_ptx(src: &str, kernels_dir: &PathBuf, out_dir: &PathBuf, cl_b
         .arg("-O3")
         .arg("--use_fast_math")
         .arg("--extra-device-vectorization")
-        // Target virtual arch sm_89 (Ada Lovelace — RTX 4060 Ti, 4070+).
-        // The PTX is still JIT'd by the driver but reflects full Ada ISA:
-        // IADD3, LOP3, SHF.WRAP, improved register alloc. Runs on any Ada
-        // or newer GPU; older GPUs (Ampere, Turing) won't load — adjust if
-        // you need Turing support (compute_75 is the older floor).
-        .arg("-arch=compute_89")
+        .arg(format!("-arch=compute_{}", arch))
         // ptxas optimisation flags (these reach the back-end optimizer).
         .arg("-Xptxas")
         .arg("-O3")
@@ -100,6 +95,12 @@ fn main() {
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
     let kernels_dir = manifest_dir.join("kernels");
 
+    // RARPC_CUDA_ARCH controls the PTX target: 89 (Ada), 86 (Ampere), 75 (Turing).
+    // Default: 89 (Ada Lovelace — RTX 40xx).
+    let arch = env::var("RARPC_CUDA_ARCH").unwrap_or_else(|_| "89".to_string());
+    println!("cargo:warning=CUDA target arch: compute_{}", arch);
+    println!("cargo:rerun-if-env-changed=RARPC_CUDA_ARCH");
+
     let cl_dir = find_cl_exe();
     if cl_dir.is_none() {
         println!(
@@ -109,9 +110,9 @@ fn main() {
     }
     let cl_dir_ref = cl_dir.as_ref();
 
-    compile_cuda_to_ptx("kernels/rar3_kdf.cu",     &kernels_dir, &out_dir, cl_dir_ref);
-    compile_cuda_to_ptx("kernels/rar5_kdf.cu",     &kernels_dir, &out_dir, cl_dir_ref);
-    compile_cuda_to_ptx("kernels/rar15_filter.cu", &kernels_dir, &out_dir, cl_dir_ref);
+    compile_cuda_to_ptx("kernels/rar3_kdf.cu",     &kernels_dir, &out_dir, cl_dir_ref, &arch);
+    compile_cuda_to_ptx("kernels/rar5_kdf.cu",     &kernels_dir, &out_dir, cl_dir_ref, &arch);
+    compile_cuda_to_ptx("kernels/rar15_filter.cu", &kernels_dir, &out_dir, cl_dir_ref, &arch);
 
     // Re-run when any header changes
     for header in &["common.cuh", "sha1_device.cuh", "sha1_hc.cuh", "sha1_hc_switch.cuh", "sha1_hc_carry.inc", "sha256_device.cuh", "aes_device.cuh"] {
