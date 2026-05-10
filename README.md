@@ -3,6 +3,8 @@
 Crackeador de contraseñas para archivos `.rar` con aceleración GPU mediante CUDA.  
 GPU-accelerated RAR password cracker using CUDA.
 
+![rarpc GUI](assets/screenshot.png)
+
 ---
 
 ## Español
