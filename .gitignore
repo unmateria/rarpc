@@ -1,0 +1,36 @@
+# Build artifacts
+/target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+nul
+
+# Secrets / local test config
+.env
+secrets.toml
+
+# Nsight Compute profiles
+*.ncu-rep
+*.nsys-rep
+
+# Session files
+*.session.json
+
+# Claude Code local state
+.claude/
+
+# Internal dev notes
+CLAUDE.md
+
+# Internal investigation artifacts
+sass_compare/
+
+# Markov model (binary, machine-specific)
+*.markov

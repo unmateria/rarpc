@@ -1,0 +1,69 @@
+[package]
+name = "rarpc"
+version = "0.1.0"
+edition = "2021"
+description = "RAR password cracker with GPU acceleration (CUDA)"
+license = "Commercial"
+
+[[bin]]
+name = "rarpc"
+path = "src/main.rs"
+
+[dependencies]
+# CUDA device management + PTX kernel launch
+# Feature flag selects CUDA version headers.  Adjust to match your install:
+# cuda-12040, cuda-12050, cuda-12060, cuda-12080, etc.
+cudarc = { version = "0.19", features = ["cuda-12080"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Progress bars
+indicatif = "0.17"
+
+# CPU parallel fallback
+rayon = "1.8"
+
+# Crypto — CPU-side verification and fallback
+sha1 = "0.10"
+sha2 = "0.10"
+hmac = "0.12"
+pbkdf2 = { version = "0.12", features = ["hmac"] }
+digest = "0.10"
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+cipher = { version = "0.4", features = ["block-padding"] }
+
+# Serialization (sessions + Markov model)
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bincode = "1"
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# Cross-thread pipeline
+crossbeam-channel = "0.5"
+
+# Byte-order utilities
+byteorder = "1"
+
+# Timestamps in sessions
+chrono = { version = "0.4", features = ["serde"] }
+
+# Hex encoding for debug output
+hex = "0.4"
+
+# GUI — egui/eframe native desktop window
+eframe  = { version = "0.28", default-features = false, features = ["default_fonts", "glow"] }
+egui    = "0.28"
+rfd     = "0.15"     # native file/folder dialogs
+
+[build-dependencies]
+# No external build deps — we call nvcc directly via std::process::Command
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
